@@ -1,0 +1,11 @@
+- import_playbook: initial.yml
+#- include: install-mysql.yml
+#- include: hardening-mysql.yml
+#- include: conf-mysql.yml
+
+- import_playbook: nginx.yml
+- import_playbook: setup_python.yml
+- import_playbook: letsencrypt-issue.yml
+
+# RUN THIS BOOK AFTER SRC CODE IS IN SERVER
+#- import_playbook: virtualenv_python.yml

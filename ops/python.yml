@@ -1,0 +1,49 @@
+- hosts: masters
+  become: yes
+  tasks:
+    - name: ensure python and make are installed
+      #become: yes
+      apt:
+        name: ['make', 'python3-pip']
+        update_cache: yes
+
+    - name: install virtualenv
+      pip:
+        name: virtualenv
+
+    - name: Creates directory repo
+      file:
+        path: /home/{{ user }}/repo.git
+        state: directory
+
+    - name: Creates directory src
+      file:
+        path: /home/{{ user }}/src
+        state: directory
+
+    - name: Creates directory venv
+      file:
+        path: /home/{{ user }}/.venv
+        state: directory
+
+    - name: Creates bare repository
+      command: git init --bare /home/{{ user }}/repo.git
+      run_once: true
+
+    - name: owner repo git
+      file:
+        path: /home/{{ user }}/repo.git
+        owner: "{{ user }}"
+        recurse: yes
+
+    - name: owner src folder
+      file:
+        path: /home/{{ user }}/src
+        owner: "{{ user }}"
+        recurse: yes
+
+    - name: Create post-receive hook
+      template:
+        src: templates/post-receive
+        dest: /home/{{ user }}/repo.git/hooks/post-receive
+        mode: a+x

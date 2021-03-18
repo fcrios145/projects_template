@@ -1,0 +1,20 @@
+- hosts: masters
+  become: yes
+  tasks:
+
+    - name: ensure nodejs and npm are installed
+      apt:
+        name: ['nodejs', 'npm']
+        update_cache: yes
+
+    - name: Update packages based on package.json to their latest version.
+      npm:
+        path: "/home/{{ user }}/src/frontend"
+        state: latest
+        production: yes
+
+
+    - name: npm run buld command
+      shell: npm run build
+      args:
+          chdir: "/home/{{ user }}/src/frontend"

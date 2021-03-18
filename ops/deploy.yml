@@ -1,0 +1,2 @@
+- import_playbook: virtualenv_python.yml
+- import_playbook: node_setup.yml

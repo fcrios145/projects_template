@@ -1,0 +1,93 @@
+- hosts: masters
+  become: yes
+  name: Virtualenv django setup
+  tasks:
+
+  - name: Read-write git checkout from github
+    become_user: '{{ user }}'
+    git:
+      repo: 'git@github.com:fcrios145/{{ github_app_name }}.git'
+      dest: /home/{{ user }}/src
+
+  - name: Gunicorn systemd setup
+    become: yes
+    template:
+      src: templates/gunicorn.socket
+      dest: /etc/systemd/system/{{app_name}}_gunicorn.socket
+
+  - name: Gunicorn service setup
+    become: yes
+    template:
+      src: templates/gunicorn.service
+      dest: /etc/systemd/system/{{app_name}}_gunicorn.service
+
+  - name: create virtualenv
+    command: virtualenv /home/{{ user }}/.venv -p /usr/bin/python3
+
+  - name: install pip requirements
+    pip:
+      requirements: /home/{{ user }}/src/backend/requirements.txt
+      virtualenv: /home/{{ user }}/.venv
+
+  - name: django manage collectstatic
+    become_user: "{{ user }}"
+    django_manage:
+      app_path: "/home/{{ user }}/src/backend"
+      virtualenv: /home/{{ user }}/.venv
+      command: collectstatic
+
+  - name: django manage migrate
+    become_user: "{{ user }}"
+    django_manage:
+      app_path: "/home/{{ user }}/src/backend"
+      virtualenv: /home/{{ user }}/.venv
+      command: migrate
+
+  - name: Make sure a service is running
+    environment:
+      ENVIRONMENT: "{{app_name}}.settings_production"
+    become: yes
+    systemd:
+      daemon_reload: yes
+      state: started
+      name: "{{app_name}}_gunicorn.socket"
+
+  - name: Configure template nginx proxy
+    become: yes
+    template:
+      src: templates/nginx_setup_template
+      dest: /etc/nginx/sites-available/{{app_name}}
+
+  - name: delete default nginx enabled
+    become: yes
+    file:
+      path: /etc/nginx/sites-enabled/default
+      state: absent
+
+
+  - name: Make sure gunicorn service is stop
+    become: yes
+    systemd:
+      daemon_reload: yes
+      state: started
+      name: "{{app_name}}_gunicorn.service"
+
+  - name: symbolic link nginx
+    become: yes
+    file:
+      src: /etc/nginx/sites-available/{{app_name}}
+      dest: /etc/nginx/sites-enabled/{{app_name}}
+      state: link
+
+  - name: Restart nginx
+    become: yes
+    systemd:
+      daemon_reload: yes
+      state: restarted
+      name: nginx
+
+  - name: Allow nginx rule full in firewall
+    become: yes
+    ufw:
+      rule: allow
+      name: Nginx Full

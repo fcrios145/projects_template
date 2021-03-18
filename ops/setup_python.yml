@@ -1,0 +1,17 @@
+- hosts: masters
+  become: yes
+  tasks:
+    - name: ensure python and make are installed
+      #become: yes
+      apt:
+        name: ['make', 'python3-pip']
+        update_cache: yes
+
+    - name: install virtualenv
+      pip:
+        name: virtualenv
+
+    - name: Creates directory venv
+      file:
+        path: /home/{{ user }}/.venv
+        state: directory
